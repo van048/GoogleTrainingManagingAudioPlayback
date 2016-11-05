@@ -44,6 +44,8 @@ public class MainActivity extends AppCompatActivity {
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
 
         am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+
+        checkHardwareBeingUsed();
     }
 
     public View.OnClickListener mPlayOnClickListener = new View.OnClickListener() {
@@ -100,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
     private final AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
         @Override
         public void onAudioFocusChange(int focusChange) {
-            Log.d(TAG, focusChange+"");
+            Log.d(TAG, focusChange + "");
             if (focusChange == AUDIOFOCUS_LOSS_TRANSIENT) {
                 // we pause the playback or our media player object??
                 // TODO: 2016/11/5
@@ -113,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
                     mp.setVolume(1f, 1f);
                 }
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
-                // TODO: 2016/11/5  
+                // TODO: 2016/11/5
                 am.unregisterMediaButtonEventReceiver(mRemoteControlReceiverComponentName);
                 am.abandonAudioFocus(afChangeListener);
                 // Stop playback
@@ -163,5 +165,21 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (mp != null) mp.release();
+    }
+
+    private void checkHardwareBeingUsed() {
+        if (am.isBluetoothA2dpOn()) {
+            // Adjust output for Bluetooth.
+            Log.d(TAG, "Bluetooth");
+        } else if (am.isSpeakerphoneOn()) {
+            // Adjust output for Speakerphone.
+            Log.d(TAG, "Speakerphone");
+        } else if (am.isWiredHeadsetOn()) {
+            // Adjust output for headsets
+            Log.d(TAG, "Headsets");
+        } else {
+            // If audio plays and no one can hear it, is it still playing?
+            Log.d(TAG, "No one can hear it");
+        }
     }
 }
