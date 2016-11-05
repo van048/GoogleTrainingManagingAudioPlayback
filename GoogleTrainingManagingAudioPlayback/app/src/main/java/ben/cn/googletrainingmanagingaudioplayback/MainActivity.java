@@ -191,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             unregisterReceiver(myNoisyAudioStreamReceiver);
         } catch (IllegalArgumentException e) {
-            
+
         }
     }
 
@@ -200,6 +200,7 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             if (AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(intent.getAction())) {
                 // Pause the playback
+                Log.d(TAG, "ACTION_AUDIO_BECOMING_NOISY");
                 if (mp != null) mp.pause();
             }
         }
