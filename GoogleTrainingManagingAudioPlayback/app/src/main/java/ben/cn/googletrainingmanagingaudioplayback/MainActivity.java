@@ -1,8 +1,11 @@
 package ben.cn.googletrainingmanagingaudioplayback;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.databinding.DataBindingUtil;
 import android.media.AudioManager;
@@ -28,6 +31,8 @@ public class MainActivity extends AppCompatActivity {
     private ComponentName mRemoteControlReceiverComponentName;
     private MediaPlayer mp;
     private AudioManager am;
+    private final IntentFilter intentFilter = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+    private final BroadcastReceiver myNoisyAudioStreamReceiver = new NoisyAudioStreamReceiver();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,14 +94,7 @@ public class MainActivity extends AppCompatActivity {
     public View.OnClickListener mPlaybackFinishedOnClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            if (mp != null) {
-                mp.stop();
-                // Abandon audio focus when playback complete
-                am.abandonAudioFocus(afChangeListener);
-                // TODO: 2016/11/5
-                // Stop listening for button presses
-                am.unregisterMediaButtonEventReceiver(mRemoteControlReceiverComponentName);
-            }
+            stopPlayback();
         }
     };
     private final AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
@@ -115,11 +113,8 @@ public class MainActivity extends AppCompatActivity {
                     mp.setVolume(1f, 1f);
                 }
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
-                // TODO: 2016/11/5
-                am.unregisterMediaButtonEventReceiver(mRemoteControlReceiverComponentName);
-                am.abandonAudioFocus(afChangeListener);
                 // Stop playback
-                if (mp != null) mp.stop();
+                stopPlayback();
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
                 // Lower the volume
                 mp.setVolume(0.3f, 0.3f);
@@ -147,6 +142,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         mp.start();//开始播放
+        registerReceiver(myNoisyAudioStreamReceiver, intentFilter);
     }
 
     private void requestPermissions() {
@@ -180,6 +176,32 @@ public class MainActivity extends AppCompatActivity {
         } else {
             // If audio plays and no one can hear it, is it still playing?
             Log.d(TAG, "No one can hear it");
+        }
+    }
+
+    private void stopPlayback() {
+        if (mp != null && mp.isPlaying()) {
+            mp.stop();
+        }
+        // Abandon audio focus when playback complete
+        am.abandonAudioFocus(afChangeListener);
+        // TODO: 2016/11/5
+        // Stop listening for button presses
+        am.unregisterMediaButtonEventReceiver(mRemoteControlReceiverComponentName);
+        try {
+            unregisterReceiver(myNoisyAudioStreamReceiver);
+        } catch (IllegalArgumentException e) {
+            
+        }
+    }
+
+    private class NoisyAudioStreamReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(intent.getAction())) {
+                // Pause the playback
+                if (mp != null) mp.pause();
+            }
         }
     }
 }
